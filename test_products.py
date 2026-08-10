@@ -34,4 +34,23 @@ def test_login_with_invalid_password_401():
         }
     )
     assert response.status_code == 401
-    
+
+def test_new_register_user_201():
+    response = requests.post(
+        "https://api-with-bugs.practicesoftwaretesting.com/users/register",
+        json={
+            "first_name": "John",
+            "last_name": "Doe",
+            "address": "Street 1",
+            "city": "City",
+            "state": "State",
+            "country": "Country",
+            "postcode": "1234AA",
+            "phone": "0987654321",
+            "dob": "1970-01-01",
+            "email": "nadi.test.001@example.com",
+            "password": "super-secret"
+        }
+    )
+    assert response.status_code == 201
+                    
