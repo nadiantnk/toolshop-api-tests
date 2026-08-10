@@ -53,4 +53,22 @@ def test_new_register_user_201():
         }
     )
     assert response.status_code == 201
-                    
+
+def test_users_me_with_token_returns_200():
+    login = requests.post(
+        "https://api-with-bugs.practicesoftwaretesting.com/users/login",
+        json={
+            "email": "customer@practicesoftwaretesting.com",
+            "password": "welcome01"
+        }
+    )
+    body = login.json()
+    token = body["access_token"]
+
+    response = requests.get(
+        "https://api-with-bugs.practicesoftwaretesting.com/users/me",
+        headers={"Authorization": "Bearer " + token}
+    )
+    assert response.status_code == 200
+    token = body["access_token"]
+    
