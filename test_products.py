@@ -1,4 +1,5 @@
 import requests
+import random
 
 
 def test_get_product_returns_200():
@@ -36,6 +37,7 @@ def test_login_with_invalid_password_401():
     assert response.status_code == 401
 
 def test_new_register_user_201():
+    unique_email = "nadi.test." + str(random.randint(1000, 9999)) + "@example.com"
     response = requests.post(
         "https://api-with-bugs.practicesoftwaretesting.com/users/register",
         json={
@@ -48,7 +50,7 @@ def test_new_register_user_201():
             "postcode": "1234AA",
             "phone": "0987654321",
             "dob": "1970-01-01",
-            "email": "nadi.test.001@example.com",
+            "email": unique_email,
             "password": "super-secret"
         }
     )
@@ -70,5 +72,4 @@ def test_users_me_with_token_returns_200():
         headers={"Authorization": "Bearer " + token}
     )
     assert response.status_code == 200
-    token = body["access_token"]
     
