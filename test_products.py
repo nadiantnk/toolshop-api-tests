@@ -1,75 +1,68 @@
+import pytest
 import requests
-import random
 
-
-def test_get_product_returns_200():
-    response = requests.get("https://api-with-bugs.practicesoftwaretesting.com/products/1")
+def test_get_product_returns_200(base_url):
+    response = requests.get(base_url + "/products/1")
     assert response.status_code == 200
 
-def test_related_products_not_found_returns_404():
-    response = requests.get("https://api-with-bugs.practicesoftwaretesting.com/products/999/related")
+@pytest.mark.xfail(reason="BUG: GET /products/{id}/related с несуществующим id возвращает 500 вместо 404")
+
+def test_related_products_not_found_returns_404(base_url):
+    response = requests.get(base_url + "/products/999/related")
     assert response.status_code == 404
 
-def test_login_returns_200():
+
+def test_list_brands_200(base_url):
+    response = requests.get(base_url + "/brands")
+    assert response.status_code == 200
+
+
+def test_login_returns_200(base_url):
     response = requests.post(
-        "https://api-with-bugs.practicesoftwaretesting.com/users/login",
+        base_url + "/users/login",
         json={
             "email": "customer@practicesoftwaretesting.com",
             "password": "welcome01"
         }
     )
     assert response.status_code == 200
-    body = response.json()
-    assert "access_token" in body
+    assert "access_token" in response.json()
 
-def test_list_brands_200():
-    response = requests.get("https://api-with-bugs.practicesoftwaretesting.com/brands")
-    assert response.status_code == 200
 
-def test_login_with_invalid_password_401():
+def test_login_with_invalid_password_401(base_url):
     response = requests.post(
-        "https://api-with-bugs.practicesoftwaretesting.com/users/login",
+        base_url + "/users/login",
         json={
-        "email": "customer@practicesoftwaretesting.com",
-        "password": "wrongpassword"
+            "email": "customer@practicesoftwaretesting.com",
+            "password": "wrongpassword"
         }
     )
     assert response.status_code == 401
 
-def test_new_register_user_201():
-    unique_email = "nadi.test." + str(random.randint(1000, 9999)) + "@example.com"
-    response = requests.post(
-        "https://api-with-bugs.practicesoftwaretesting.com/users/register",
-        json={
-            "first_name": "John",
-            "last_name": "Doe",
-            "address": "Street 1",
-            "city": "City",
-            "state": "State",
-            "country": "Country",
-            "postcode": "1234AA",
-            "phone": "0987654321",
-            "dob": "1970-01-01",
-            "email": unique_email,
-            "password": "super-secret"
-        }
-    )
-    assert response.status_code == 201
 
-def test_users_me_with_token_returns_200():
-    login = requests.post(
-        "https://api-with-bugs.practicesoftwaretesting.com/users/login",
-        json={
-            "email": "customer@practicesoftwaretesting.com",
-            "password": "welcome01"
-        }
-    )
-    body = login.json()
-    token = body["access_token"]
+def test_new_register_user_201(new_user):
+    assert "email" in new_user
 
-    response = requests.get(
-        "https://api-with-bugs.practicesoftwaretesting.com/users/me",
-        headers={"Authorization": "Bearer " + token}
-    )
+
+def test_users_me_with_token_returns_200(base_url, auth_headers):
+    response = requests.get(base_url + "/users/me", headers=auth_headers)
     assert response.status_code == 200
-    
+
+
+def test_put_update_user_200(base_url, new_user):
+    login = requests.post(
+        base_url + "/users/login",
+        json={"email": new_user["email"], "password": new_user["password"]}
+    )
+    headers = {"Authorization": "Bearer " + login.json()["access_token"]}
+
+    me = requests.get(base_url + "/users/me", headers=headers)
+    user_id = me.json()["id"]
+
+    new_user["city"] = "Munich"
+    response = requests.put(
+        base_url + "/users/" + str(user_id),
+        json=new_user,
+        headers=headers
+    )
+    assert response.status_code in (200, 204)
