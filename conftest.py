@@ -41,5 +41,6 @@ def new_user(base_url):
         "email": email,
         "password": "super-secret"
     }
-    requests.post(f"{base_url}/users/register", json=payload)
+    response = requests.post(f"{base_url}/users/register", json=payload)
+    payload["id"] = response.json()["id"]
     return payload
