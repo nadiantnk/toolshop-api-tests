@@ -11,7 +11,7 @@ def base_url():
 @pytest.fixture
 def token(base_url):
     response = requests.post(
-        base_url + "/users/login",
+        f"{base_url}/users/login",
         json={
             "email": "customer@practicesoftwaretesting.com",
             "password": "welcome01"
@@ -22,12 +22,12 @@ def token(base_url):
 
 @pytest.fixture
 def auth_headers(token):
-    return {"Authorization": "Bearer " + token}
+    return {"Authorization": f"Bearer {token}"}
 
 
 @pytest.fixture
 def new_user(base_url):
-    email = "nadi." + str(random.randint(1000, 9999)) + "@example.com"
+    email = f"nadi.{random.randint(1000, 9999)}@example.com"
     payload = {
         "first_name": "John",
         "last_name": "Doe",
@@ -41,5 +41,5 @@ def new_user(base_url):
         "email": email,
         "password": "super-secret"
     }
-    requests.post(base_url + "/users/register", json=payload)
+    requests.post(f"{base_url}/users/register", json=payload)
     return payload
