@@ -68,6 +68,7 @@ def test_put_update_user_200(base_url, new_user):
     )
     assert response.status_code in (200, 204)
 
+
 @pytest.mark.xfail(reason="BUG: DELETE /users/{id} возвращает 401 вместо 403")
 def test_delete_user_returns_403(base_url, new_user):
     login = requests.post(
@@ -84,3 +85,17 @@ def test_delete_user_returns_403(base_url, new_user):
         headers=headers
     )
     assert response.status_code == 403
+
+
+def test_admin_can_delete_user_204(base_url, new_user):
+    user_id = new_user["id"]
+    login = requests.post(
+        f"{base_url}/users/login",
+        json={"email": "admin@practicesoftwaretesting.com", "password": "welcome01"}
+    )
+    admin_headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    response = requests.delete(
+        f"{base_url}/users/{user_id}",
+        headers=admin_headers
+    )
+    assert response.status_code == 204
