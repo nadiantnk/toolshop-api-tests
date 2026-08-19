@@ -144,9 +144,7 @@ def test_admin_can_delete_user_returns_204(base_url, new_user, admin_headers):
     )
     assert response.status_code == 204
 
-    login_after = requests.post(
-        f"{base_url}/users/login",
-        json={"email": new_user["email"], "password": new_user["password"]},
-        timeout=TIMEOUT
-    )
+def test_deleted_user_cannot_login_returns_401(base_url, new_user, admin_headers):
+    requests.delete(f"{base_url}/users/{new_user['id']}", headers=admin_headers, timeout=TIMEOUT)
+    login_after = requests.post(f"{base_url}/users/login", json={"email": new_user["email"], "password": new_user["password"]}, timeout=TIMEOUT)
     assert login_after.status_code == 401
