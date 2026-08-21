@@ -222,3 +222,10 @@ def test_register_duplicate_email_does_not_leak_password_hint(base_url, user_pay
     )
     assert response_duplicate.status_code == 409
     assert "hint" not in response_duplicate.text
+
+def test_nonexistent_id_returns_404(base_url):
+    response = requests.get(
+        f"{base_url}/product/1515",
+        timeout=TIMEOUT
+    )
+    assert response.status_code == 404
