@@ -1,5 +1,6 @@
 import pytest
 import requests
+import uuid
 
 TIMEOUT = 10
 
@@ -58,6 +59,18 @@ def test_login_with_invalid_password_returns_401(base_url):
         json={
             "email": "customer@practicesoftwaretesting.com",
             "password": "wrongpassword"
+        },
+        timeout=TIMEOUT
+    )
+    assert response.status_code == 401
+
+
+def test_login_with_nonexistent_email_returns_401(base_url):
+    response = requests.post(
+        f"{base_url}/users/login",
+        json={
+            "email": f"nonexistent-{uuid.uuid4().hex[:8]}@example.com",
+            "password": "welcome01"
         },
         timeout=TIMEOUT
     )
@@ -144,7 +157,68 @@ def test_admin_can_delete_user_returns_204(base_url, new_user, admin_headers):
     )
     assert response.status_code == 204
 
+
 def test_deleted_user_cannot_login_returns_401(base_url, new_user, admin_headers):
-    requests.delete(f"{base_url}/users/{new_user['id']}", headers=admin_headers, timeout=TIMEOUT)
-    login_after = requests.post(f"{base_url}/users/login", json={"email": new_user["email"], "password": new_user["password"]}, timeout=TIMEOUT)
+    requests.delete(
+        f"{base_url}/users/{new_user['id']}",
+        headers=admin_headers,
+        timeout=TIMEOUT
+    )
+    login_after = requests.post(
+        f"{base_url}/users/login",
+        json={"email": new_user["email"], "password": new_user["password"]},
+        timeout=TIMEOUT
+    )
     assert login_after.status_code == 401
+
+
+# ---------- register: валидация и утечки ----------
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="BUG: POST /users/register принимает невалидный email и возвращает 201 вместо 422"
+)
+def test_register_with_invalid_email_returns_422(base_url, user_payload):
+    user_payload["email"] = f"invalid-email-{uuid.uuid4().hex[:8]}"
+    response = requests.post(
+        f"{base_url}/users/register",
+        json=user_payload,
+        timeout=TIMEOUT
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="BUG: POST /users/register принимает пароль из 1 символа и возвращает 201 вместо 400"
+)
+def test_register_with_short_password_returns_400(base_url, user_payload):
+    user_payload["password"] = "1"
+    response = requests.post(
+        f"{base_url}/users/register",
+        json=user_payload,
+        timeout=TIMEOUT
+    )
+    assert response.status_code == 400
+
+
+@pytest.mark.xfail(
+    strict=True,
+    reason="BUG: POST /users/register при повторной регистрации отдаёт подсказку к паролю в теле 409 — утечка информации"
+)
+def test_register_duplicate_email_does_not_leak_password_hint(base_url, user_payload):
+    response = requests.post(
+        f"{base_url}/users/register",
+        json=user_payload,
+        timeout=TIMEOUT
+    )
+    assert response.status_code == 201
+
+    # Пробуем зарегистрировать того же пользователя ещё раз.
+    response_duplicate = requests.post(
+        f"{base_url}/users/register",
+        json=user_payload,
+        timeout=TIMEOUT
+    )
+    assert response_duplicate.status_code == 409
+    assert "hint" not in response_duplicate.text
